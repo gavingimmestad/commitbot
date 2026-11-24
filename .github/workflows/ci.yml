@@ -1,0 +1,16 @@
+name: ci
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash test.sh
+      - name: Smoke-test the action (no change, so no commit)
+        uses: ./
+        with:
+          command: "true"

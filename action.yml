@@ -1,0 +1,22 @@
+name: commitbot
+description: Run a command, then commit and push whatever it changed.
+inputs:
+  command:
+    description: Shell command that updates files in the repository.
+    required: true
+  message:
+    description: Commit message.
+    default: "chore: automated update"
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      # Inputs go through env, not inline, so they cannot inject into this script.
+      env:
+        COMMAND: ${{ inputs.command }}
+        MESSAGE: ${{ inputs.message }}
+        GIT_AUTHOR_NAME: github-actions[bot]
+        GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+        GIT_COMMITTER_NAME: github-actions[bot]
+        GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+      run: bash "$GITHUB_ACTION_PATH/commitbot.sh" "$COMMAND" "$MESSAGE"
