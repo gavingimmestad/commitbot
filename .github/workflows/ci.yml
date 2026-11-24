@@ -2,15 +2,44 @@ name: ci
 on:
   push:
   pull_request:
-permissions:
-  contents: read
 jobs:
   test:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+    env:
+      BRANCH: e2e-${{ github.run_id }}-${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: bash test.sh
-      - name: Smoke-test the action (no change, so no commit)
+
+      # End to end on a throwaway branch. Pull requests may not have push access, so pushes only.
+      - if: github.event_name == 'push'
+        run: git switch -c "$BRANCH"
+      - if: github.event_name == 'push'
         uses: ./
         with:
-          command: "true"
+          command: echo "$GITHUB_RUN_ID" > e2e.txt
+          message: "test: e2e"
+      - name: Run again, with nothing to change
+        if: github.event_name == 'push'
+        uses: ./
+        with:
+          command: echo "$GITHUB_RUN_ID" > e2e.txt
+      - name: Exactly one bot commit was pushed
+        if: github.event_name == 'push'
+        run: |
+          git fetch -q origin "$BRANCH"
+          git log -2 --format='%h %an %s' FETCH_HEAD
+          [ "$(git log -1 --format='%an|%s' FETCH_HEAD)" = "github-actions[bot]|test: e2e" ]
+          [ "$(git show FETCH_HEAD:e2e.txt)" = "$GITHUB_RUN_ID" ]
+          [ "$(git rev-parse FETCH_HEAD^)" = "$GITHUB_SHA" ]
+      - if: always() && github.event_name == 'push'
+        run: git push origin --delete "$BRANCH"

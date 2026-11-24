@@ -19,7 +19,7 @@ jobs:
   refresh:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: gavingimmestad/commitbot@main
         with:
           command: python scripts/refresh.py
@@ -39,13 +39,16 @@ Commits are authored by `github-actions[bot]`.
 bash /path/to/commitbot.sh "python scripts/refresh.py" "data: daily refresh"
 ```
 
-Run it inside any git repository. Local commits use your own git identity.
+Run it inside any git repository. Local commits use your own git identity,
+so `user.name` and `user.email` must be set.
 
 ## Good to know
 
-- It refuses to run on a dirty working tree, so it never commits unrelated work.
-- It needs a checked-out branch. Pull request checkouts are detached and will fail to push.
-- If the branch moved while the command ran, the push fails and the next run retries.
+- It refuses to run with uncommitted changes or unpushed commits, so it never publishes unrelated work.
+  If an earlier step in your workflow creates files, add them to `.gitignore`.
+- It needs a checked-out branch. Pull request checkouts are detached, so it refuses to run there.
+- If the branch moved while the command ran, it rebases and retries the push once. On a conflict it fails
+  and keeps the commit locally.
 - Pushes made with `GITHUB_TOKEN` do not trigger other workflows.
 - GitHub disables scheduled workflows in public repositories after 60 days without activity.
 - Please follow GitHub's [Acceptable Use Policies](https://docs.github.com/en/site-policy/acceptable-use-policies/github-acceptable-use-policies).
